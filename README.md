@@ -58,9 +58,25 @@ MCPクライアント（Claude Desktopなど）から以下のコマンドで起
 npx tsx /path/to/TemplateMCP/packages/mcp-server/index.ts
 ```
 
+geminiの場合はこんな感じで設定する
+
+```
+"mcpServers": {
+  "template-mcp": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "tsx",
+      "/home/minamo/repository/TemplateMCP/packages/mcp-server/index.ts"
+    ]
+  }
+}
+```
+
 #### 提供されるツール
 
 - `greet_and_suggest_all`: データベースに登録された全員に挨拶し、好物に基づいたメニューを提案します。
+  - **新機能**: TheMealDB API と連携し、ユーザーの好みに合った実際の料理名を Web から取得して提案に含めます。和食、中華、イタリアンなどの主要なカテゴリに対応しています。
 
 ## 開発ガイド
 
