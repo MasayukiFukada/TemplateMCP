@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Person {
+  id            Int            @id @default(autoincrement())
+  name          String
+  favoriteFoods FavoriteFood[]
+}
+
+model FavoriteFood {
+  id       Int    @id @default(autoincrement())
+  name     String
+  personId Int
+  person   Person @relation(fields: [personId], references: [id])
+}
