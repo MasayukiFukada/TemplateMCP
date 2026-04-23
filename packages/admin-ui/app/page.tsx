@@ -1,5 +1,16 @@
 import { prisma } from "db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag, cacheTag } from "next/cache";
+import { Suspense } from "react";
+
+async function getPeople() {
+  "use cache";
+  cacheTag("people");
+  return await prisma.person.findMany({
+    include: {
+      favoriteFoods: true,
+    },
+  });
+}
 
 async function addPerson(formData: FormData) {
   "use server";
@@ -15,17 +26,36 @@ async function addPerson(formData: FormData) {
         },
       },
     });
+    // Use updateTag for immediate "read-your-writes" semantics in v16
+    updateTag("people");
     revalidatePath("/");
   }
 }
 
-export default async function Home() {
-  const people = await prisma.person.findMany({
-    include: {
-      favoriteFoods: true,
-    },
-  });
+async function PeopleList() {
+  const people = await getPeople();
 
+  return (
+    <div className="space-y-4">
+      {people.length === 0 ? (
+        <p className="text-gray-500 italic">No one registered yet.</p>
+      ) : (
+        people.map((person) => (
+          <div key={person.id} className="border-b pb-2">
+            <span className="font-bold text-gray-800">{person.name}</span>
+            <ul className="ml-4 list-disc text-sm text-gray-600">
+              {person.favoriteFoods.map((food) => (
+                <li key={food.id}>{food.name}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+export default async function Home() {
   return (
     <div className="min-h-screen bg-gray-100 p-8 font-sans">
       <main className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
@@ -40,7 +70,7 @@ export default async function Home() {
                 name="name" 
                 type="text" 
                 required 
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-black"
                 placeholder="John Doe"
               />
             </div>
@@ -49,7 +79,7 @@ export default async function Home() {
               <input 
                 name="food" 
                 type="text" 
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 text-black"
                 placeholder="Pizza"
               />
             </div>
@@ -64,22 +94,9 @@ export default async function Home() {
 
         <section>
           <h2 className="text-xl font-semibold mb-4 text-gray-700">Registered People</h2>
-          <div className="space-y-4">
-            {people.length === 0 ? (
-              <p className="text-gray-500 italic">No one registered yet.</p>
-            ) : (
-              people.map((person) => (
-                <div key={person.id} className="border-b pb-2">
-                  <span className="font-bold text-gray-800">{person.name}</span>
-                  <ul className="ml-4 list-disc text-sm text-gray-600">
-                    {person.favoriteFoods.map((food) => (
-                      <li key={food.id}>{food.name}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))
-            )}
-          </div>
+          <Suspense fallback={<p className="text-gray-500 animate-pulse">Loading people...</p>}>
+            <PeopleList />
+          </Suspense>
         </section>
       </main>
     </div>
